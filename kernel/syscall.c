@@ -101,6 +101,17 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_settickets(void);
+// Phase 2: Memory and File System Enhancements
+extern uint64 sys_memstat(void);
+extern uint64 sys_encrypt(void);
+extern uint64 sys_decrypt(void);
+extern uint64 sys_freemem(void);
+// Phase 3: Producer-Consumer Problem
+extern uint64 sys_buffer_init(void);
+extern uint64 sys_produce(void);
+extern uint64 sys_consume(void);
+extern uint64 sys_buffer_status(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -126,6 +137,17 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_settickets]   sys_settickets,
+// Phase 2: Memory and File System Enhancements
+[SYS_memstat]      sys_memstat,
+[SYS_encrypt]      sys_encrypt,
+[SYS_decrypt]      sys_decrypt,
+[SYS_freemem]      sys_freemem,
+// Phase 3: Producer-Consumer Problem
+[SYS_buffer_init]    sys_buffer_init,
+[SYS_produce]        sys_produce,
+[SYS_consume]        sys_consume,
+[SYS_buffer_status]  sys_buffer_status,
 };
 
 void

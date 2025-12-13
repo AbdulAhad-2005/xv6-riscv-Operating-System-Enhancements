@@ -59,6 +59,8 @@ void            ireclaim(int);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+uint64          getfreepages(void);
+void            getmemstat(uint64*, uint64*);
 
 // log.c
 void            initlog(int, struct superblock*);

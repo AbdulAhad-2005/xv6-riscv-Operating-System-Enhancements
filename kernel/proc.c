@@ -6,6 +6,14 @@
 #include "proc.h"
 #include "defs.h"
 
+// Simple random number generator
+unsigned long rand_state = 1;
+int
+random(void) {
+  rand_state = rand_state * 1664525 + 1013904223;
+  return rand_state;
+}
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -123,6 +131,7 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+  p->tickets = 10; // Give every new process 10 tickets
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -275,6 +284,7 @@ kfork(void)
     return -1;
   }
   np->sz = p->sz;
+  np->tickets = p->tickets;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -421,6 +431,9 @@ kwait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+
+// Per-CPU process scheduler.
+
 void
 scheduler(void)
 {
@@ -429,32 +442,46 @@ scheduler(void)
 
   c->proc = 0;
   for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
+    // Enable interrupts on this processor.
     intr_on();
-    intr_off();
+    intr_off(); // Briefly enable interrupts to avoid deadlock
 
     int found = 0;
+    int total_tickets = 0;
+
+    // --- LOTTERY PART 1: Count total tickets ---
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+        total_tickets += p->tickets;
       }
       release(&p->lock);
     }
+
+    // --- LOTTERY PART 2: Pick a winner ---
+    if(total_tickets > 0) {
+      int winner = random() % total_tickets;
+      int counter = 0;
+
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          counter += p->tickets;
+          if(counter > winner) {
+            // Process found! Run it.
+            p->state = RUNNING;
+            c->proc = p;
+            swtch(&c->context, &p->context);
+            c->proc = 0;
+            found = 1;
+            release(&p->lock);
+            break; // Stop searching, we found the winner
+          }
+        }
+        release(&p->lock);
+      }
+    }
+
     if(found == 0) {
       // nothing to run; stop running on this core until an interrupt.
       asm volatile("wfi");
