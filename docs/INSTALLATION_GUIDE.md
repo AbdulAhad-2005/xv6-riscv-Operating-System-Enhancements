@@ -3,12 +3,12 @@
 
 ---
 
-## Quick Start (5 Minutes)
+## Quick Start
 
 ### Prerequisites
 
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian/WSL
 sudo apt-get update
 sudo apt-get install git build-essential qemu-system-misc gcc-riscv64-linux-gnu gdb-multiarch
 
@@ -21,7 +21,7 @@ brew install riscv-tools qemu
 
 ```bash
 # Clone repository
-git clone git@github.com:OmarFarooq127/OS-Assignment-2.git
+git clone https://github.com/AbdulAhad-2005/xv6-riscv-Operating-System-Enhancements.git
 cd OS-Assignment-2
 
 # Build everything
