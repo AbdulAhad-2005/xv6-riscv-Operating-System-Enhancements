@@ -21,12 +21,16 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+  uint64 nfree;      // Number of free pages (Phase 2: Memory Stats)
+  uint64 nalloc;     // Total allocations (Phase 2: Memory Stats)
 } kmem;
 
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  kmem.nfree = 0;
+  kmem.nalloc = 0;
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -59,6 +63,7 @@ kfree(void *pa)
   acquire(&kmem.lock);
   r->next = kmem.freelist;
   kmem.freelist = r;
+  kmem.nfree++;  // Phase 2: Track free pages
   release(&kmem.lock);
 }
 
@@ -72,11 +77,35 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r)
+  if(r) {
     kmem.freelist = r->next;
+    kmem.nfree--;   // Phase 2: Track free pages
+    kmem.nalloc++;  // Phase 2: Track total allocations
+  }
   release(&kmem.lock);
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+// Phase 2: Get number of free pages
+uint64
+getfreepages(void)
+{
+  uint64 n;
+  acquire(&kmem.lock);
+  n = kmem.nfree;
+  release(&kmem.lock);
+  return n;
+}
+
+// Phase 2: Get memory statistics
+void
+getmemstat(uint64 *freepages, uint64 *totalalloc)
+{
+  acquire(&kmem.lock);
+  *freepages = kmem.nfree;
+  *totalalloc = kmem.nalloc;
+  release(&kmem.lock);
 }

@@ -42,3 +42,14 @@ entry("getpid");
 entry("sbrk");
 entry("pause");
 entry("uptime");
+entry("settickets");
+# Phase 2: Memory and File System Enhancements
+entry("memstat");
+entry("encrypt");
+entry("decrypt");
+entry("freemem");
+# Phase 3: Producer-Consumer Problem
+entry("buffer_init");
+entry("produce");
+entry("consume");
+entry("buffer_status");

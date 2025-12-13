@@ -24,6 +24,17 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+int settickets(int);
+// Phase 2: Memory and File System Enhancements
+int memstat(uint64*, uint64*);
+int encrypt(char*, int);
+int decrypt(char*, int);
+uint64 freemem(void);
+// Phase 3: Producer-Consumer Problem
+int buffer_init(void);
+int produce(int);
+int consume(int*);
+int buffer_status(int*, int*, int*);
 
 // ulib.c
 int stat(const char*, struct stat*);
