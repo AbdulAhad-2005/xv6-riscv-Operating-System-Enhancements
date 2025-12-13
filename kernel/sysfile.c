@@ -503,3 +503,107 @@ sys_pipe(void)
   }
   return 0;
 }
+
+// Simple XOR-based file encryption
+uint64
+sys_encrypt(void)
+{
+  char srcpath[MAXPATH], dstpath[MAXPATH], key[MAXPATH];
+  struct inode *src_ip, *dst_ip;
+  char buf[512];
+  int n, keylen;
+  uint off = 0;
+  
+  if(argstr(0, srcpath, MAXPATH) < 0 || argstr(1, dstpath, MAXPATH) < 0 || 
+     argstr(2, key, MAXPATH) < 0)
+    return -1;
+  
+  keylen = strlen(key);
+  if(keylen == 0)
+    return -1;
+  
+  begin_op();
+  if((src_ip = namei(srcpath)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(src_ip);
+  
+  if((dst_ip = create(dstpath, T_FILE, 0, 0)) == 0){
+    iunlockput(src_ip);
+    end_op();
+    return -1;
+  }
+  
+  // Read from source, encrypt, write to destination
+  while((n = readi(src_ip, 0, (uint64)buf, off, sizeof(buf))) > 0){
+    // XOR encryption
+    for(int i = 0; i < n; i++){
+      buf[i] ^= key[i % keylen];
+    }
+    if(writei(dst_ip, 0, (uint64)buf, off, n) != n){
+      iunlockput(src_ip);
+      iunlockput(dst_ip);
+      end_op();
+      return -1;
+    }
+    off += n;
+  }
+  
+  iunlockput(src_ip);
+  iunlockput(dst_ip);
+  end_op();
+  return 0;
+}
+
+// Simple XOR-based file decryption (same as encryption with XOR)
+uint64
+sys_decrypt(void)
+{
+  char srcpath[MAXPATH], dstpath[MAXPATH], key[MAXPATH];
+  struct inode *src_ip, *dst_ip;
+  char buf[512];
+  int n, keylen;
+  uint off = 0;
+  
+  if(argstr(0, srcpath, MAXPATH) < 0 || argstr(1, dstpath, MAXPATH) < 0 || 
+     argstr(2, key, MAXPATH) < 0)
+    return -1;
+  
+  keylen = strlen(key);
+  if(keylen == 0)
+    return -1;
+  
+  begin_op();
+  if((src_ip = namei(srcpath)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(src_ip);
+  
+  if((dst_ip = create(dstpath, T_FILE, 0, 0)) == 0){
+    iunlockput(src_ip);
+    end_op();
+    return -1;
+  }
+  
+  // Read from source, decrypt (XOR), write to destination
+  while((n = readi(src_ip, 0, (uint64)buf, off, sizeof(buf))) > 0){
+    // XOR decryption (same as encryption)
+    for(int i = 0; i < n; i++){
+      buf[i] ^= key[i % keylen];
+    }
+    if(writei(dst_ip, 0, (uint64)buf, off, n) != n){
+      iunlockput(src_ip);
+      iunlockput(dst_ip);
+      end_op();
+      return -1;
+    }
+    off += n;
+  }
+  
+  iunlockput(src_ip);
+  iunlockput(dst_ip);
+  end_op();
+  return 0;
+}

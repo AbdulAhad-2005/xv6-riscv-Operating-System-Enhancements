@@ -1,6 +1,15 @@
 #define SBRK_ERROR ((char *)-1)
 
+#define NPROC 64  // maximum number of processes
+
 struct stat;
+
+struct pstat {
+  int inuse[NPROC];   // whether this slot of the process table is in use (1 or 0)
+  int tickets[NPROC]; // the number of tickets this process has
+  int pid[NPROC];     // the PID of each process
+  int ticks[NPROC];   // the number of ticks each process has accumulated
+};
 
 // system calls
 int fork(void);
@@ -24,6 +33,15 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+int settickets(int);
+int getpinfo(struct pstat*);
+int memsize(void);
+int encrypt(char*, char*, char*);
+int decrypt(char*, char*, char*);
+int sem_init(int);
+int sem_wait(int);
+int sem_post(int);
+int sem_destroy(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -145,6 +145,10 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  
+  // Initialize lottery scheduler fields
+  p->tickets = 1;  // Default 1 ticket
+  p->ticks = 0;
 
   return p;
 }
@@ -417,7 +421,7 @@ kwait(uint64 addr)
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
+//  - choose a process to run using lottery scheduling.
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
@@ -437,25 +441,41 @@ scheduler(void)
     intr_on();
     intr_off();
 
-    int found = 0;
+    // Lottery scheduling: calculate total tickets
+    int total_tickets = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+        total_tickets += p->tickets;
       }
       release(&p->lock);
     }
-    if(found == 0) {
+
+    if(total_tickets > 0) {
+      // Pick a random ticket
+      int winning_ticket = ticks % total_tickets;
+      int ticket_count = 0;
+      
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          ticket_count += p->tickets;
+          if(ticket_count > winning_ticket) {
+            // This process wins the lottery
+            p->state = RUNNING;
+            c->proc = p;
+            swtch(&c->context, &p->context);
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+            release(&p->lock);
+            break;
+          }
+        }
+        release(&p->lock);
+      }
+    } else {
       // nothing to run; stop running on this core until an interrupt.
       asm volatile("wfi");
     }

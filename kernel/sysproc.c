@@ -6,6 +6,9 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "pstat.h"
+
+extern struct proc proc[NPROC];
 
 uint64
 sys_exit(void)
@@ -106,4 +109,89 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_settickets(void)
+{
+  int n;
+  argint(0, &n);
+  if(n < 1)
+    return -1;
+  
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  p->tickets = n;
+  release(&p->lock);
+  return 0;
+}
+
+uint64
+sys_getpinfo(void)
+{
+  uint64 addr;
+  argaddr(0, &addr);
+  
+  struct pstat ps;
+  struct proc *p;
+  int i = 0;
+  
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state != UNUSED) {
+      ps.inuse[i] = 1;
+      ps.tickets[i] = p->tickets;
+      ps.pid[i] = p->pid;
+      ps.ticks[i] = p->ticks;
+    } else {
+      ps.inuse[i] = 0;
+      ps.tickets[i] = 0;
+      ps.pid[i] = 0;
+      ps.ticks[i] = 0;
+    }
+    release(&p->lock);
+    i++;
+  }
+  
+  if(copyout(myproc()->pagetable, addr, (char *)&ps, sizeof(ps)) < 0)
+    return -1;
+  return 0;
+}
+
+uint64
+sys_memsize(void)
+{
+  return myproc()->sz;
+}
+
+uint64
+sys_sem_init(void)
+{
+  int value;
+  argint(0, &value);
+  return sem_init(value);
+}
+
+uint64
+sys_sem_wait(void)
+{
+  int sem_id;
+  argint(0, &sem_id);
+  return sem_wait(sem_id);
+}
+
+uint64
+sys_sem_post(void)
+{
+  int sem_id;
+  argint(0, &sem_id);
+  return sem_post(sem_id);
+}
+
+uint64
+sys_sem_destroy(void)
+{
+  int sem_id;
+  argint(0, &sem_id);
+  return sem_destroy(sem_id);
 }
