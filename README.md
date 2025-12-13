@@ -2,9 +2,9 @@
 
 ## Project Overview
 This project implements various OS enhancements on the xv6-riscv operating system, including:
-- **Phase 1**: Lottery Scheduler ✅ Completed
-- **Phase 2**: Memory and File System Enhancements ✅ Completed
-- **Phase 3**: Producer-Consumer Synchronization ✅ Completed
+- **Phase 1**: Lottery Scheduler
+- **Phase 2**: Memory and File System Enhancements
+- **Phase 3**: Producer-Consumer Synchronization
 
 ### System Calls Summary
 
@@ -53,7 +53,7 @@ qemu-system-riscv64 --version
 ### Building the Project
 ```bash
 # Clone the repository
-git clone https://github.com/OmarFarooq127/OS-Assignment-2.git
+git clone https://github.com/AbdulAhad-2005/xv6-riscv-Operating-System-Enhancements.git
 cd OS-Assignment-2
 
 # Clean previous builds
